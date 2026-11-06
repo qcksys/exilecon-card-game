@@ -18,7 +18,19 @@
             "simple": { "limit": 10, "period": 60 }
         }
     ],
+    // Workers Logs and traces at full sampling: console.* output (the scan route logs JSON),
+    // per-request invocation logs and traces are all searchable in the dashboard.
     "observability": {
-        "enabled": true
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+            "enabled": true,
+            "invocation_logs": true,
+            "head_sampling_rate": 1
+        },
+        "traces": {
+            "enabled": true,
+            "head_sampling_rate": 1
+        }
     }
 }

@@ -10,6 +10,8 @@ interface TurnstileApi {
             callback?: (token: string) => void;
             "error-callback"?: (code: string) => void;
             "expired-callback"?: () => void;
+            "before-interactive-callback"?: () => void;
+            "after-interactive-callback"?: () => void;
         },
     ): string;
     execute(widgetId: string): void;
@@ -48,9 +50,14 @@ export class TurnstileClient {
     private widgetId: string | undefined;
     private pending: { resolve: (t: string) => void; reject: (e: Error) => void } | undefined;
 
+    /**
+     * @param onInteractive called with true when Cloudflare shows the "Verify you are human"
+     * checkbox (the user has to tap it), and false once it's done.
+     */
     constructor(
         private readonly siteKey: string,
         private readonly container: HTMLElement,
+        private readonly onInteractive?: (needsTap: boolean) => void,
     ) {}
 
     /** Get a fresh single-use token. Shows a challenge in the container only if Cloudflare needs one. */
@@ -66,6 +73,8 @@ export class TurnstileClient {
                     this.pending?.reject(new Error(`Bot check failed (${code})`)),
                 "expired-callback": () =>
                     this.pending?.reject(new Error("Bot check expired, try again")),
+                "before-interactive-callback": () => this.onInteractive?.(true),
+                "after-interactive-callback": () => this.onInteractive?.(false),
             });
         } else {
             api.reset(this.widgetId);

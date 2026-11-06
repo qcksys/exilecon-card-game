@@ -28,6 +28,10 @@ interface Editing {
     mode: "scan" | "manual" | "edit";
     /** Changes every time a form is opened, so the editor scrolls into view. */
     opened: number;
+    /** Scan mode: the bot check hasn't passed yet, so only the photo is shown, not the card form. */
+    verifying?: boolean;
+    /** Cloudflare is showing its "Verify you are human" checkbox. */
+    needsTap?: boolean;
 }
 
 const RARITY_TEXT: Record<Card["rarity"], string> = {
@@ -167,6 +171,8 @@ export default function Inventory({
     const importInput = useRef<HTMLInputElement>(null);
     const turnstileBox = useRef<HTMLDivElement>(null);
     const turnstile = useRef<TurnstileClient | null>(null);
+    /** The scan in flight (its `opened` time); 0 once the user cancels or switches to manual entry. */
+    const scanSession = useRef(0);
     const editorBox = useRef<HTMLElement>(null);
     const editorKey = editing?.opened ?? 0;
 
@@ -192,8 +198,15 @@ export default function Inventory({
     }, []);
 
     const closeEditor = () => {
+        scanSession.current = 0;
         if (editing?.photoUrl) URL.revokeObjectURL(editing.photoUrl);
         setEditing(null);
+    };
+
+    /** Skip the bot check and scan: keep the photo and open the form for manual entry. */
+    const fillByHand = () => {
+        scanSession.current = 0;
+        setEditing((e) => (e ? { ...e, verifying: false, needsTap: false, status: undefined } : e));
     };
 
     const startScan = () => cameraInput.current?.click();
@@ -203,23 +216,41 @@ export default function Inventory({
         if (editing?.photoUrl) URL.revokeObjectURL(editing.photoUrl);
         const { upload, thumb } = await preparePhoto(file);
         const photoUrl = URL.createObjectURL(thumb);
+        const opened = Date.now();
         const base: Editing = {
             draft: { ...EMPTY_DRAFT },
             photo: thumb,
             photoUrl,
             uncertain: new Set(),
-            status: scanEnabled ? { kind: "busy", text: "Reading the card…" } : undefined,
+            status: undefined,
             mode: "scan",
-            opened: Date.now(),
+            opened,
+            verifying: scanEnabled,
         };
         setEditing(base);
         if (!scanEnabled) return;
+        scanSession.current = opened;
         try {
             if (!turnstile.current && turnstileBox.current) {
-                turnstile.current = new TurnstileClient(siteKey, turnstileBox.current);
+                turnstile.current = new TurnstileClient(siteKey, turnstileBox.current, (needsTap) =>
+                    setEditing((e) => (e?.verifying ? { ...e, needsTap } : e)),
+                );
             }
             const token = await (turnstile.current as TurnstileClient).token();
+            // The user may have chosen to fill it in by hand (or cancelled) while the check ran.
+            if (scanSession.current !== opened) return;
+            setEditing((e) =>
+                e && e.photoUrl === photoUrl
+                    ? {
+                          ...e,
+                          verifying: false,
+                          needsTap: false,
+                          status: { kind: "busy", text: "Reading the card…" },
+                      }
+                    : e,
+            );
             const scan = await callScan(upload, token);
+            if (scanSession.current !== opened) return;
             setEditing((e) =>
                 e && e.photoUrl === photoUrl
                     ? {
@@ -236,10 +267,13 @@ export default function Inventory({
                     : e,
             );
         } catch (err) {
+            if (scanSession.current !== opened) return;
             setEditing((e) =>
                 e && e.photoUrl === photoUrl
                     ? {
                           ...e,
+                          verifying: false,
+                          needsTap: false,
                           status: {
                               kind: "error",
                               text: `${(err as Error).message} Fill it in by hand.`,
@@ -376,8 +410,6 @@ export default function Inventory({
                     e.target.value = "";
                 }}
             />
-            <div ref={turnstileBox} className="flex justify-center empty:hidden" />
-
             {notice ? (
                 <button
                     type="button"
@@ -419,7 +451,54 @@ export default function Inventory({
                 </div>
             ) : null}
 
-            {editing ? (
+            {editing?.verifying ? (
+                <section
+                    ref={editorBox}
+                    className="scroll-mt-16 space-y-3 rounded-xl border border-gold/50 bg-panel p-3"
+                    aria-live="polite"
+                >
+                    <div className="flex items-center gap-3">
+                        {editing.photoUrl ? (
+                            <img
+                                src={editing.photoUrl}
+                                alt="Card"
+                                className="h-28 w-auto shrink-0 rounded-lg border border-edge object-cover"
+                            />
+                        ) : null}
+                        <div className="text-sm">
+                            <div className="font-semibold text-gold">
+                                {editing.needsTap ? "One tap first" : "Checking you're human…"}
+                            </div>
+                            <p className="mt-1 text-muted">
+                                {editing.needsTap
+                                    ? "Tick “Verify you are human” below, then the card is read for you."
+                                    : "This stops bots using the card reader. It only takes a moment."}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2 text-sm">
+                        <button
+                            type="button"
+                            onClick={fillByHand}
+                            className="h-10 flex-1 rounded-lg border border-gold px-3 text-gold"
+                        >
+                            Fill in by hand instead
+                        </button>
+                        <button
+                            type="button"
+                            onClick={closeEditor}
+                            className="h-10 rounded-lg border border-edge px-3"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </section>
+            ) : null}
+
+            {/* Cloudflare Turnstile renders here; it's only visible when a tap is needed. */}
+            <div ref={turnstileBox} className="flex justify-center empty:hidden" />
+
+            {editing && !editing.verifying ? (
                 <section
                     ref={editorBox}
                     className="scroll-mt-16 rounded-xl border border-gold/50 bg-panel p-3"
@@ -445,7 +524,7 @@ export default function Inventory({
                         onCancel={closeEditor}
                     />
                 </section>
-            ) : (
+            ) : editing ? null : (
                 <div className="grid grid-cols-2 gap-2">
                     <button
                         type="button"

@@ -1,8 +1,28 @@
 import { MockLanguageModelV4 } from "ai/test";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import type { ScanResult } from "./game";
 import { handleScan, type ScanDeps } from "./scan";
 import { turnstileVerifier } from "./turnstile";
+
+let logs: Array<MockInstance<(...args: unknown[]) => void>> = [];
+beforeEach(() => {
+    logs = (["log", "warn", "error"] as const).map((level) =>
+        vi.spyOn(console, level).mockImplementation(() => undefined),
+    );
+});
+afterEach(() => {
+    for (const spy of logs) spy.mockRestore();
+});
+
+/** Every structured scan log entry written during the test. */
+function scanLogs(): Array<Record<string, unknown>> {
+    return logs
+        .flatMap((spy) => spy.mock.calls.map((args) => args[0]))
+        .filter(
+            (e): e is Record<string, unknown> =>
+                typeof e === "object" && e !== null && "event" in e,
+        );
+}
 
 function jsonModel(value: unknown) {
     return new MockLanguageModelV4({
@@ -127,10 +147,30 @@ describe("handleScan", () => {
                 throw new Error("upstream down");
             },
         });
-        const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
         const res = await handleScan(request({ token: "ok" }), deps({ gateModel: broken }));
-        spy.mockRestore();
         expect(res.status).toBe(502);
+        expect(scanLogs()[0]).toMatchObject({
+            event: "scan",
+            outcome: "error",
+            stage: "gate",
+            status: 502,
+        });
+    });
+
+    it("logs one structured line per request, without the photo", async () => {
+        await handleScan(request({ token: "ok" }), deps());
+        await handleScan(request(), deps());
+        const [read, denied] = scanLogs();
+        expect(read).toMatchObject({
+            event: "scan",
+            outcome: "read",
+            status: 200,
+            card: { name: "Hardwood Spear", slot: "weapon", rarity: "magic" },
+            gateUsage: { input: 10, output: 10 },
+        });
+        expect(read?.photoBytes).toBe(3);
+        expect(JSON.stringify(read)).not.toMatch(/data|ip/i);
+        expect(denied).toMatchObject({ outcome: "bot_check_failed", status: 403 });
     });
 });
 
