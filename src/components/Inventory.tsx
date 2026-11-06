@@ -41,6 +41,33 @@ const RARITY_TEXT: Record<Card["rarity"], string> = {
     unique: "text-unique",
 };
 
+/** Inventory groups, in display order. Weapons split by hands: a two-hander can't go with a shield. */
+const GROUPS = [
+    {
+        key: "weapon-1h",
+        label: "One-handed weapons",
+        match: (c: Card) => c.slot === "weapon" && !c.twoHanded,
+    },
+    {
+        key: "weapon-2h",
+        label: "Two-handed weapons",
+        match: (c: Card) => c.slot === "weapon" && c.twoHanded,
+    },
+    ...SLOTS.filter((s) => s !== "weapon").map((s) => ({
+        key: s,
+        label: SLOT_LABEL[s],
+        match: (c: Card) => c.slot === s,
+    })),
+];
+
+const groupIndex = (c: Card) => GROUPS.findIndex((g) => g.match(c));
+
+/** "Two-handed weapon", "Shield", … */
+function slotLabel(c: Card): string {
+    if (c.slot !== "weapon") return SLOT_LABEL[c.slot];
+    return c.twoHanded ? "Two-handed weapon" : "One-handed weapon";
+}
+
 function useThumb(photoId: string | undefined) {
     const [url, setUrl] = useState<string>();
     useEffect(() => {
@@ -111,15 +138,12 @@ function CardRow({
                 <span className="min-w-0">
                     <span className={`block truncate font-medium ${RARITY_TEXT[card.rarity]}`}>
                         {card.name}
-                        {card.slot === "weapon" && card.twoHanded ? (
-                            <span className="ml-1 text-xs text-muted">2H</span>
-                        ) : null}
                     </span>
                     <span className="mt-1 block">
                         <SymbolRow symbols={card.symbols} size={20} />
                     </span>
                     {showSlot ? (
-                        <span className="text-xs text-muted">{SLOT_LABEL[card.slot]}</span>
+                        <span className="text-xs text-muted">{slotLabel(card)}</span>
                     ) : broken ? (
                         <span className="text-xs text-bad">Broken</span>
                     ) : null}
@@ -591,15 +615,15 @@ export default function Inventory({
                 </p>
             ) : (
                 <>
-                    {SLOTS.map((slot) => {
+                    {GROUPS.map((group) => {
                         const inSlot = cards
-                            .filter((c) => c.slot === slot && !isBroken(c))
+                            .filter((c) => group.match(c) && !isBroken(c))
                             .sort((a, b) => a.name.localeCompare(b.name));
                         if (inSlot.length === 0) return null;
                         return (
-                            <section key={slot}>
+                            <section key={group.key}>
                                 <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
-                                    {SLOT_LABEL[slot]} ({inSlot.length})
+                                    {group.label} ({inSlot.length})
                                 </h2>
                                 <ul className="divide-y divide-edge rounded-xl border border-edge bg-panel">
                                     {inSlot.map((c) => (
@@ -620,8 +644,7 @@ export default function Inventory({
                             .filter(isBroken)
                             .sort(
                                 (a, b) =>
-                                    SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot) ||
-                                    a.name.localeCompare(b.name),
+                                    groupIndex(a) - groupIndex(b) || a.name.localeCompare(b.name),
                             );
                         if (broken.length === 0) return null;
                         return (
