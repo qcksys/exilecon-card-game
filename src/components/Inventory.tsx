@@ -80,15 +80,18 @@ function CardRow({
     card,
     onEdit,
     onDamage,
+    showSlot = false,
 }: {
     card: Card;
     onEdit: () => void;
     onDamage: (delta: number) => void;
+    /** Label the slot under the name (used in the Broken section, which mixes slots). */
+    showSlot?: boolean;
 }) {
     const thumb = useThumb(card.photoId);
     const broken = isBroken(card);
     return (
-        <li className={`flex items-center gap-3 p-2.5 ${broken ? "opacity-50" : ""}`}>
+        <li className={`flex items-center gap-3 p-2.5 ${broken ? "opacity-60" : ""}`}>
             <button
                 type="button"
                 onClick={onEdit}
@@ -115,7 +118,11 @@ function CardRow({
                     <span className="mt-1 block">
                         <SymbolRow symbols={card.symbols} size={20} />
                     </span>
-                    {broken ? <span className="text-xs text-bad">Broken</span> : null}
+                    {showSlot ? (
+                        <span className="text-xs text-muted">{SLOT_LABEL[card.slot]}</span>
+                    ) : broken ? (
+                        <span className="text-xs text-bad">Broken</span>
+                    ) : null}
                 </span>
             </button>
             <div className="flex flex-col items-end gap-1.5">
@@ -583,29 +590,64 @@ export default function Inventory({
                     saved on this device only.
                 </p>
             ) : (
-                SLOTS.map((slot) => {
-                    const inSlot = cards
-                        .filter((c) => c.slot === slot)
-                        .sort((a, b) => a.name.localeCompare(b.name));
-                    if (inSlot.length === 0) return null;
-                    return (
-                        <section key={slot}>
-                            <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
-                                {SLOT_LABEL[slot]} ({inSlot.length})
-                            </h2>
-                            <ul className="divide-y divide-edge rounded-xl border border-edge bg-panel">
-                                {inSlot.map((c) => (
-                                    <CardRow
-                                        key={c.id}
-                                        card={c}
-                                        onEdit={() => edit(c)}
-                                        onDamage={(d) => damage(c, d)}
-                                    />
-                                ))}
-                            </ul>
-                        </section>
-                    );
-                })
+                <>
+                    {SLOTS.map((slot) => {
+                        const inSlot = cards
+                            .filter((c) => c.slot === slot && !isBroken(c))
+                            .sort((a, b) => a.name.localeCompare(b.name));
+                        if (inSlot.length === 0) return null;
+                        return (
+                            <section key={slot}>
+                                <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
+                                    {SLOT_LABEL[slot]} ({inSlot.length})
+                                </h2>
+                                <ul className="divide-y divide-edge rounded-xl border border-edge bg-panel">
+                                    {inSlot.map((c) => (
+                                        <CardRow
+                                            key={c.id}
+                                            card={c}
+                                            onEdit={() => edit(c)}
+                                            onDamage={(d) => damage(c, d)}
+                                        />
+                                    ))}
+                                </ul>
+                            </section>
+                        );
+                    })}
+                    {(() => {
+                        // Broken cards can't be used in a fight, so they sit apart at the bottom.
+                        const broken = cards
+                            .filter(isBroken)
+                            .sort(
+                                (a, b) =>
+                                    SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot) ||
+                                    a.name.localeCompare(b.name),
+                            );
+                        if (broken.length === 0) return null;
+                        return (
+                            <section>
+                                <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-bad">
+                                    Broken ({broken.length})
+                                </h2>
+                                <p className="mb-1.5 text-xs text-muted">
+                                    Out of durability, so the fight calculator skips them. Tap − if
+                                    one was marked by mistake.
+                                </p>
+                                <ul className="divide-y divide-edge rounded-xl border border-bad/30 bg-panel">
+                                    {broken.map((c) => (
+                                        <CardRow
+                                            key={c.id}
+                                            card={c}
+                                            showSlot
+                                            onEdit={() => edit(c)}
+                                            onDamage={(d) => damage(c, d)}
+                                        />
+                                    ))}
+                                </ul>
+                            </section>
+                        );
+                    })()}
+                </>
             )}
 
             {cards && cards.length > 0 ? (
