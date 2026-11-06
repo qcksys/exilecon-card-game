@@ -13,7 +13,7 @@ export const POST: APIRoute = ({ request }) => {
         scanEnabled: ENV.SCAN_ENABLED,
         ip: request.headers.get("cf-connecting-ip") ?? undefined,
         limiter: env.SCAN_LIMITER,
-        verifyHuman: turnstileVerifier(ENV.TURNSTILE_SECRET_KEY),
+        verifyHuman: turnstileVerifier(ENV.TURNSTILE_SECRET),
         gateModel: anthropic("claude-haiku-5-5"),
         extractModel: anthropic("claude-sonnet-5-5"),
     });

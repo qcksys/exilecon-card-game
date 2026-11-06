@@ -9,5 +9,5 @@ import Base from "../layouts/Base.astro";
     <p class="mb-4 text-sm text-muted">
         Photograph a card and it's read for you, or tap in its symbols by hand. Cards are saved on this device only.
     </p>
-    <Inventory client:load siteKey={ENV.TURNSTILE_SITE_KEY} scanEnabled={ENV.SCAN_ENABLED} />
+    <Inventory client:load siteKey={ENV.TURNSTILE_KEY} scanEnabled={ENV.SCAN_ENABLED} />
 </Base>

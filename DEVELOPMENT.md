@@ -17,7 +17,23 @@ Env vars come from `.env.schema` through [varlock](https://varlock.dev). Secrets
 | `vp run dev` | Dev server on <http://localhost:4321>. Locally, Turnstile uses Cloudflare's always-pass test keys. |
 | `vp run test` | Unit tests: the loadout solver, the scan route, link rewriting. |
 | `vp run check` | `astro check` and Biome. |
-| `vp run deploy` | Builds with `APP_ENV=prod` and deploys with `varlock-wrangler`, which uploads secrets as Worker secrets. Needs `wrangler login` once. |
+| `vp run deploy` | Deploys from your machine: builds with `APP_ENV=prod` and deploys with `varlock-wrangler`, which uploads secrets as Worker secrets. Needs `wrangler login` once. |
+
+## Deploys
+
+Pushing to `main` deploys through GitHub Actions (`.github/workflows/deploy.yml`) after the checks pass. You can also start it by hand with `gh workflow run deploy.yml --ref main`.
+
+Actions doesn't read 1Password. Instead it uses repository secrets mirrored from the `exilecon-card-game` 1Password item, with the same names:
+- `ANTHROPIC_API_KEY`
+- `TURNSTILE_KEY`
+- `TURNSTILE_SECRET`
+- `CLOUDFLARE_ACCESS_TOKEN`, which the workflow passes to wrangler as `CLOUDFLARE_API_TOKEN`
+
+When a value changes in 1Password, copy it across without printing it:
+
+```bash
+op read -n "op://v3zxer3deg52xqcutwk7pdfeey/ffnyvxsbxh4oolzfwawkylf74e/TURNSTILE_SECRET" | gh secret set TURNSTILE_SECRET
+```
 
 ## How it fits together
 
