@@ -1,0 +1,52 @@
+{
+    "name": "exilecon-card-game",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "astro dev",
+        "build": "astro build",
+        "preview": "astro preview",
+        "check": "astro check && biome check",
+        "format": "biome check --write",
+        "test": "vitest run",
+        "env:check": "varlock load",
+        "build:prod": "cross-env APP_ENV=prod astro build",
+        "deploy": "cross-env APP_ENV=prod astro build && cross-env APP_ENV=prod varlock-wrangler deploy",
+        "generate-types": "varlock-wrangler types"
+    },
+    "packageManager": "pnpm@12.18.0",
+    "engines": {
+        "node": ">=24.12.0"
+    },
+    "dependencies": {
+        "@ai-sdk/anthropic": "^4.0.97",
+        "@astrojs/cloudflare": "^14.4.6",
+        "@astrojs/react": "^7.1.4",
+        "@tailwindcss/typography": "^0.5.20",
+        "@tailwindcss/vite": "^4.3.4",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "@varlock/1password-plugin": "^2.0.6",
+        "@varlock/astro-integration": "^1.4.5",
+        "@varlock/cloudflare-integration": "^1.6.3",
+        "ai": "^7.0.163",
+        "astro": "^7.4.7",
+        "idb-keyval": "^6.3.0",
+        "lucide-react": "^1.68.0",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1",
+        "tailwindcss": "^4.3.4",
+        "varlock": "^1.24.0",
+        "wrangler": "^4.158.0",
+        "zod": "^4.6.7"
+    },
+    "devDependencies": {
+        "@astrojs/check": "^0.9.12",
+        "@biomejs/biome": "^2.6.5",
+        "@types/node": "^24.19.2",
+        "cross-env": "^10.1.0",
+        "typescript": "^6.0.3",
+        "vitest": "^5.1.0"
+    }
+}

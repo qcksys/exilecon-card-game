@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.varlock/
+.dev.vars
+public/images/
+.claude/
+.env.local
+.env.*.local
+*.log

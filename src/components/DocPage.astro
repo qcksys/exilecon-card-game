@@ -1,0 +1,53 @@
+---
+import { type CollectionEntry, getCollection, render } from "astro:content";
+import Base from "../layouts/Base.astro";
+
+interface Props {
+    entry: CollectionEntry<"docs">;
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const all = (await getCollection("docs")).sort((a, b) => a.data.order - b.data.order);
+const index = all.findIndex((d) => d.id === entry.id);
+const prev = all[index - 1];
+const next = all[index + 1];
+const title = entry.id === "readme" ? "ExileCon 2026 Card Game" : entry.data.title;
+---
+
+<Base title={title} active="rules">
+    <nav class="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 text-sm" aria-label="Rules pages">
+        {
+            all.map((d) => (
+                <a
+                    href={d.data.route}
+                    class:list={[
+                        "shrink-0 rounded-full border px-3 py-1",
+                        d.id === entry.id ? "border-gold bg-panel-2 text-gold" : "border-edge text-muted",
+                    ]}
+                >
+                    {d.data.nav}
+                </a>
+            ))
+        }
+    </nav>
+    {
+        entry.id === "readme" ? (
+            <div class="mb-6 grid grid-cols-2 gap-2">
+                <a href="/cards/" class="rounded-xl bg-gold p-3 text-center font-semibold text-ink">
+                    Scan my cards
+                </a>
+                <a href="/fight/" class="rounded-xl border border-gold p-3 text-center font-semibold text-gold">
+                    Can I beat it?
+                </a>
+            </div>
+        ) : null
+    }
+    <article class="prose prose-invert prose-doc max-w-none prose-headings:scroll-mt-20 prose-a:underline-offset-2">
+        <Content />
+    </article>
+    <div class="mt-10 flex justify-between gap-2 text-sm">
+        {prev ? <a class="text-gold" href={prev.data.route}>← {prev.data.nav}</a> : <span />}
+        {next ? <a class="text-gold" href={next.data.route}>{next.data.nav} →</a> : null}
+    </div>
+</Base>

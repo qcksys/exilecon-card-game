@@ -1,0 +1,15 @@
+---
+import { getCollection } from "astro:content";
+import DocPage from "../components/DocPage.astro";
+
+export async function getStaticPaths() {
+    const docs = await getCollection("docs");
+    return docs
+        .filter((d) => d.id !== "readme")
+        .map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<DocPage entry={entry} />

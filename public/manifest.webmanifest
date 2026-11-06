@@ -1,0 +1,10 @@
+{
+    "name": "ExileCon 2026 Card Game",
+    "short_name": "ExileCon Cards",
+    "description": "Rules, card inventory and fight calculator for the ExileCon 2026 card game.",
+    "start_url": "/cards/",
+    "display": "standalone",
+    "background_color": "#0f0e0c",
+    "theme_color": "#0f0e0c",
+    "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

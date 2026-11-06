@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+    --color-ink: #0f0e0c;
+    --color-panel: #1a1815;
+    --color-panel-2: #24211c;
+    --color-edge: #3b352b;
+    --color-gold: #c9a45c;
+    --color-gold-dim: #8c7442;
+    --color-text: #e9e3d5;
+    --color-muted: #a59d8c;
+    --color-good: #5fbf6a;
+    --color-bad: #e05a4f;
+    --color-magic: #7d8fe8;
+    --color-rare: #e8d27d;
+    --color-unique: #d98a3d;
+    --font-display: "Cinzel", ui-serif, Georgia, serif;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+    color-scheme: dark;
+}
+
+body {
+    background: var(--color-ink);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prose-doc {
+    --tw-prose-body: var(--color-text);
+    --tw-prose-headings: var(--color-gold);
+    --tw-prose-links: var(--color-gold);
+    --tw-prose-bold: #fff;
+    --tw-prose-quotes: var(--color-muted);
+    --tw-prose-quote-borders: var(--color-gold-dim);
+    --tw-prose-code: var(--color-text);
+    --tw-prose-th-borders: var(--color-edge);
+    --tw-prose-td-borders: var(--color-edge);
+    --tw-prose-hr: var(--color-edge);
+    --tw-prose-bullets: var(--color-gold-dim);
+    --tw-prose-counters: var(--color-gold-dim);
+}
+
+.prose-doc h1,
+.prose-doc h2,
+.prose-doc h3 {
+    font-family: var(--font-display);
+}
+
+.prose-doc table {
+    display: block;
+    overflow-x: auto;
+}
+
+.prose-doc img {
+    border-radius: 0.75rem;
+    max-height: 32rem;
+    width: auto;
+}

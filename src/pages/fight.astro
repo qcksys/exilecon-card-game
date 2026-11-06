@@ -1,0 +1,14 @@
+---
+import FightCalculator from "../components/FightCalculator";
+import Base from "../layouts/Base.astro";
+---
+
+<Base title="Fight calculator" active="fight" description="Check whether any combination of your cards beats a monster.">
+    <h1 class="mb-1 font-display text-2xl font-bold text-gold">Can I beat it?</h1>
+    <p class="mb-4 text-sm text-muted">
+        Enter the symbols on the monster's shirt. Every legal loadout from
+        <a class="text-gold underline" href="/cards/">your cards</a>{" "}is checked: one weapon, a shield if one-handed, an
+        armour, an amulet and two rings, with each piece of jewellery on Attack or Defence.
+    </p>
+    <FightCalculator client:load />
+</Base>

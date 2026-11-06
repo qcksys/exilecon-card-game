@@ -1,0 +1,24 @@
+{
+    "$schema": "./node_modules/wrangler/config-schema.json",
+    "name": "exilecon-card-game",
+    "account_id": "923e3a86a572d6d6d05230ccadbbbe34",
+    "compatibility_date": "2026-11-01",
+    "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
+    "main": "@astrojs/cloudflare/entrypoints/server",
+    "assets": {
+        "directory": "./dist",
+        "binding": "ASSETS"
+    },
+    "routes": [{ "pattern": "card.poe.boats", "custom_domain": true }],
+    // Per-IP limit for the AI scan route (on top of Turnstile).
+    "ratelimits": [
+        {
+            "name": "SCAN_LIMITER",
+            "namespace_id": "1001",
+            "simple": { "limit": 10, "period": 60 }
+        }
+    ],
+    "observability": {
+        "enabled": true
+    }
+}
