@@ -1,4 +1,4 @@
-import { Camera, Download, Link2, Minus, PenLine, Plus, Upload } from "lucide-react";
+import { Camera, Download, Images, Link2, Minus, PenLine, Plus, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Card, isBroken, newId, ScanResult, SLOT_LABEL, SLOTS } from "../lib/game";
 import { preparePhoto } from "../lib/photo";
@@ -168,6 +168,7 @@ export default function Inventory({
     const [notice, setNotice] = useState<string>();
     const [pendingImport, setPendingImport] = useState<Card[] | null>(null);
     const cameraInput = useRef<HTMLInputElement>(null);
+    const galleryInput = useRef<HTMLInputElement>(null);
     const importInput = useRef<HTMLInputElement>(null);
     const turnstileBox = useRef<HTMLDivElement>(null);
     const turnstile = useRef<TurnstileClient | null>(null);
@@ -209,7 +210,12 @@ export default function Inventory({
         setEditing((e) => (e ? { ...e, verifying: false, needsTap: false, status: undefined } : e));
     };
 
-    const startScan = () => cameraInput.current?.click();
+    /** Where the last photo came from, so "Save & scan next" reopens the same picker. */
+    const lastSource = useRef<"camera" | "gallery">("camera");
+    const startScan = (source: "camera" | "gallery" = lastSource.current) => {
+        lastSource.current = source;
+        (source === "gallery" ? galleryInput : cameraInput).current?.click();
+    };
 
     const onPhoto = async (file: File | undefined) => {
         if (!file) return;
@@ -400,6 +406,17 @@ export default function Inventory({
                     e.target.value = "";
                 }}
             />
+            {/* No `capture`: phones open the photo library instead of the camera. */}
+            <input
+                ref={galleryInput}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                    onPhoto(e.target.files?.[0]);
+                    e.target.value = "";
+                }}
+            />
             <input
                 ref={importInput}
                 type="file"
@@ -528,10 +545,17 @@ export default function Inventory({
                 <div className="grid grid-cols-2 gap-2">
                     <button
                         type="button"
-                        onClick={startScan}
+                        onClick={() => startScan("camera")}
                         className="flex h-14 items-center justify-center gap-2 rounded-xl bg-gold font-semibold text-ink"
                     >
                         <Camera size={20} /> {scanEnabled ? "Scan a card" : "Photo a card"}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => startScan("gallery")}
+                        className="flex h-14 items-center justify-center gap-2 rounded-xl bg-gold/85 font-semibold text-ink"
+                    >
+                        <Images size={20} /> From gallery
                     </button>
                     <button
                         type="button"
@@ -544,7 +568,7 @@ export default function Inventory({
                                 opened: Date.now(),
                             })
                         }
-                        className="flex h-14 items-center justify-center gap-2 rounded-xl border border-gold font-semibold text-gold"
+                        className="col-span-2 flex h-12 items-center justify-center gap-2 rounded-xl border border-gold font-semibold text-gold"
                     >
                         <PenLine size={20} /> Add by hand
                     </button>

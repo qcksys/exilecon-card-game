@@ -7,7 +7,8 @@ import Base from "../layouts/Base.astro";
 <Base title="My cards" active="cards" description="Scan your ExileCon card-game cards into an inventory on your phone.">
     <h1 class="mb-1 font-display text-2xl font-bold text-gold">My cards</h1>
     <p class="mb-4 text-sm text-muted">
-        Photograph a card and it's read for you, or tap in its symbols by hand. Cards are saved on this device only.
+        Photograph a card, or pick a photo from your gallery, and it's read for you. Or tap in its symbols by hand.
+        Cards are saved on this device only.
     </p>
     <Inventory client:load siteKey={ENV.TURNSTILE_KEY} scanEnabled={ENV.SCAN_ENABLED} />
 </Base>
