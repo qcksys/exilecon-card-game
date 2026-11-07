@@ -10,6 +10,7 @@ import {
 } from "../lib/game";
 import { solve } from "../lib/solver";
 import { loadCards, loadMonsters, saveMonsters } from "../lib/store";
+import { GearSummary } from "./GearSummary";
 import { LoadoutView } from "./LoadoutView";
 import { SymbolRow } from "./SymbolIcon";
 import { NumberStepper, SymbolPicker } from "./SymbolPicker";
@@ -98,6 +99,8 @@ export default function FightCalculator() {
 
     return (
         <div className="space-y-4">
+            {cards && cards.length > 0 ? <GearSummary cards={cards} exclude={excluded} /> : null}
+
             <section className="space-y-3">
                 <div className="flex items-center gap-2">
                     <input

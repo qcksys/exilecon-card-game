@@ -15,6 +15,7 @@ import {
 } from "../lib/store";
 import { TurnstileClient } from "../lib/turnstile-client";
 import { CardEditor, type Draft, draftFromScan, EMPTY_DRAFT } from "./CardEditor";
+import { GearSummary } from "./GearSummary";
 import { SymbolRow } from "./SymbolIcon";
 
 type Status = { kind: "busy" | "error" | "info"; text: string } | undefined;
@@ -605,6 +606,8 @@ export default function Inventory({
                     </button>
                 </div>
             )}
+
+            {cards && cards.length > 0 && !editing ? <GearSummary cards={cards} /> : null}
 
             {cards === null ? (
                 <p className="text-muted">Loading…</p>

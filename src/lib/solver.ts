@@ -349,3 +349,102 @@ function buildLoadout(
     for (const c of j.defence) items.push({ card: c, side: "defence" });
     return { items, attack, defence, win: attack.pass && defence.pass };
 }
+
+export interface SidePeak {
+    /** Total symbols on this side. */
+    total: number;
+    symbols: SymbolCounts;
+    /** The loadout that gets there. */
+    items: Assignment[];
+}
+
+export interface GearTotals {
+    /** The most symbols you can put on Attack, ignoring Defence. */
+    attack: SidePeak;
+    /** The most symbols you can put on Defence, ignoring Attack. */
+    defence: SidePeak;
+    /**
+     * Attack and Defence totals you can field in the same fight, keeping only the best trade-offs
+     * (no other loadout beats one on both sides). Highest Attack first.
+     */
+    combos: Array<{ attack: number; defence: number }>;
+}
+
+/**
+ * How strong the gear is: the highest Attack and Defence totals any legal loadout reaches. A monster
+ * whose Defence (specific symbols + number) is at most the Attack total, and whose Attack is at most
+ * the Defence total, can be beaten as long as its specific symbols are covered.
+ */
+export function gearTotals(
+    cards: Card[],
+    options: { exclude?: ReadonlySet<string> } = {},
+): GearTotals {
+    const usable = cards.filter((c) => !isBroken(c) && !options.exclude?.has(c.id));
+    const groups = dedupe(usable);
+    const bySlot = (slot: Card["slot"]) => groups.filter((g) => g.card.slot === slot);
+    const weapons = bySlot("weapon").map((g) => g.card);
+    const oneHanders: Array<Card | null> = [null, ...weapons.filter((w) => !w.twoHanded)];
+    const twoHanders = weapons.filter((w) => w.twoHanded);
+    const armours: Array<Card | null> = [null, ...bySlot("armour").map((g) => g.card)];
+    const shields: Array<Card | null> = [null, ...bySlot("shield").map((g) => g.card)];
+    const defencePairs: Array<[Card | null, Card | null]> = [];
+    for (const s of shields) for (const a of armours) defencePairs.push([s, a]);
+
+    const size = (cs: Array<Card | null>) =>
+        cs.reduce((n, c) => n + (c ? countSymbols(c.symbols) : 0), 0);
+    const best = <T>(opts: T[], score: (o: T) => number): T | undefined =>
+        opts.reduce<T | undefined>(
+            (b, o) => (b === undefined || score(o) > score(b) ? o : b),
+            undefined,
+        );
+
+    const empty: SidePeak = { total: 0, symbols: {}, items: [] };
+    let attack = empty;
+    let defence = empty;
+    const points: Array<{ attack: number; defence: number }> = [];
+
+    for (const j of jewelleryOptions(bySlot("amulet"), bySlot("ring"))) {
+        // One-hander (or no weapon) with the best shield + armour, or a two-hander with armour only.
+        const bestArmour = best(armours, (a) => size([a])) ?? null;
+        const options: Array<[Card | null | undefined, [Card | null, Card | null] | undefined]> = [
+            [best(oneHanders, (w) => size([w])), best(defencePairs, size)],
+            [best(twoHanders, (w) => size([w])), [null, bestArmour]],
+        ];
+        for (const [weapon, def] of options) {
+            if (weapon === undefined || !def) continue;
+            const [shield, armour] = def;
+            const atkSymbols = pool([weapon, ...j.attack]);
+            const defSymbols = pool([shield, armour, ...j.defence]);
+            const items: Assignment[] = [];
+            if (weapon) items.push({ card: weapon, side: "attack" });
+            if (shield) items.push({ card: shield, side: "defence" });
+            if (armour) items.push({ card: armour, side: "defence" });
+            for (const c of j.attack) items.push({ card: c, side: "attack" });
+            for (const c of j.defence) items.push({ card: c, side: "defence" });
+            const a = countSymbols(atkSymbols);
+            const d = countSymbols(defSymbols);
+            points.push({ attack: a, defence: d });
+            if (a > attack.total)
+                attack = {
+                    total: a,
+                    symbols: atkSymbols,
+                    items: items.filter((i) => i.side === "attack"),
+                };
+            if (d > defence.total)
+                defence = {
+                    total: d,
+                    symbols: defSymbols,
+                    items: items.filter((i) => i.side === "defence"),
+                };
+        }
+    }
+
+    // Keep only the trade-offs nothing else beats on both sides.
+    points.sort((x, y) => y.attack - x.attack || y.defence - x.defence);
+    const combos: Array<{ attack: number; defence: number }> = [];
+    for (const p of points) {
+        const last = combos[combos.length - 1];
+        if (!last || p.defence > last.defence) combos.push(p);
+    }
+    return { attack, defence, combos };
+}

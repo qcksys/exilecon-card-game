@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Card, MonsterStat, SymbolCounts } from "./game";
-import { checkSide, solve } from "./solver";
+import { checkSide, gearTotals, solve } from "./solver";
 
 let seq = 0;
 function card(partial: Partial<Card> & Pick<Card, "slot" | "symbols">): Card {
@@ -201,5 +201,56 @@ describe("solve", () => {
         });
         expect(performance.now() - t).toBeLessThan(3000);
         expect(r.wins.length).toBeLessThanOrEqual(5);
+    });
+});
+
+describe("gearTotals", () => {
+    const starter = [shortsword, longsword, towerShield, cuirass];
+
+    it("finds the highest Attack and Defence, and the trade-off between them", () => {
+        const t = gearTotals(starter);
+        expect(t.attack.total).toBe(2);
+        expect(t.attack.symbols).toEqual({ sword: 2 });
+        expect(t.attack.items.map((i) => i.card.name)).toEqual(["Corroded Longsword"]);
+        expect(t.defence.total).toBe(3);
+        expect(t.defence.symbols).toEqual({ block: 1, life: 2 });
+        // The two-hander rules out the shield, so 2 Attack comes with only 2 Defence.
+        expect(t.combos).toEqual([
+            { attack: 2, defence: 2 },
+            { attack: 1, defence: 3 },
+        ]);
+    });
+
+    it("puts jewellery on whichever side it helps", () => {
+        const amulet = card({ name: "Amulet", slot: "amulet", symbols: { fire: 1, cold: 1 } });
+        const t = gearTotals([...starter, amulet]);
+        expect(t.attack.total).toBe(4);
+        expect(t.defence.total).toBe(5);
+        expect(t.combos).toEqual([
+            { attack: 4, defence: 2 },
+            { attack: 3, defence: 3 },
+            { attack: 2, defence: 4 },
+            { attack: 1, defence: 5 },
+        ]);
+    });
+
+    it("ignores broken and excluded cards", () => {
+        const broken = card({
+            name: "Broken Maul",
+            slot: "weapon",
+            twoHanded: true,
+            symbols: { sword: 5 },
+            damage: 2,
+        });
+        expect(gearTotals([...starter, broken]).attack.total).toBe(2);
+        expect(gearTotals(starter, { exclude: new Set([cuirass.id]) }).defence.total).toBe(1);
+    });
+
+    it("is all zeros with no cards", () => {
+        expect(gearTotals([])).toMatchObject({
+            attack: { total: 0 },
+            defence: { total: 0 },
+            combos: [{ attack: 0, defence: 0 }],
+        });
     });
 });
